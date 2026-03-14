@@ -133,12 +133,36 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Configure Tauri updater signing
+        shell: bash
+        env:
+          RAW_TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          RAW_TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RAW_TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "No TAURI_SIGNING_PRIVATE_KEY secret found; building without updater signing."
+            exit 0
+          fi
+
+          if [ -z "${RAW_TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required when TAURI_SIGNING_PRIVATE_KEY is set."
+            exit 1
+          fi
+
+          {
+            echo "TAURI_SIGNING_PRIVATE_KEY<<__TAURI_KEY__"
+            printf '%s\n' "${RAW_TAURI_SIGNING_PRIVATE_KEY}"
+            echo "__TAURI_KEY__"
+          } >> "$GITHUB_ENV"
+          echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${RAW_TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" >> "$GITHUB_ENV"
+          echo "Tauri updater signing is enabled."
+
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: "v${{ steps.app_version.outputs.VERSION }}"
           releaseName: "Cockpit Tools v${{ steps.app_version.outputs.VERSION }}"
