@@ -16,18 +16,6 @@ jobs:
           # macOS Apple Silicon
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          # macOS Intel
-          - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin"
-          # macOS Universal (同时支持 Intel 和 Apple Silicon)
-          - platform: "macos-latest"
-            args: "--target universal-apple-darwin"
-          # Linux x86_64
-          - platform: "ubuntu-22.04"
-            args: ""
-          # Linux ARM64
-          - platform: "ubuntu-24.04-arm"
-            args: ""
           # Windows x86_64
           - platform: "windows-latest"
             args: ""
@@ -48,7 +36,7 @@ jobs:
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || (contains(matrix.args, 'aarch64') && 'aarch64-unknown-linux-gnu' || '') }}
+          targets: ${{ contains(matrix.args, 'aarch64-apple-darwin') && 'aarch64-apple-darwin' || '' }}
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -237,11 +225,8 @@ jobs:
           set -euo pipefail
           jq -e '
             .platforms["darwin-aarch64"] and
-            .platforms["darwin-x86_64"] and
             .platforms["windows-x86_64"] and
-            .platforms["windows-x86_64-nsis"] and
-            .platforms["linux-x86_64-appimage"] and
-            .platforms["linux-aarch64-appimage"]
+            .platforms["windows-x86_64-nsis"]
           ' latest.json > /dev/null
           jq -r '.platforms | keys[]' latest.json
 
@@ -326,7 +311,8 @@ jobs:
       - rebuild-latest-json
       - upload-checksums
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 本工作流仅构建 macOS arm64 + Windows x64，不再产出 universal.dmg，故跳过 Cask 自动更新。
+    if: false
     permissions:
       contents: write
       pull-requests: write
