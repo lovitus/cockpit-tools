@@ -143,13 +143,13 @@ jobs:
           set -euo pipefail
 
           if [ -z "${RAW_TAURI_SIGNING_PRIVATE_KEY}" ]; then
-            cat > src-tauri/tauri.ci.no-updater.conf.json <<'JSON'
-            {
-              "bundle": {
-                "createUpdaterArtifacts": false
-              }
-            }
-            JSON
+            printf '%s\n' \
+              '{' \
+              '  "bundle": {' \
+              '    "createUpdaterArtifacts": false' \
+              '  }' \
+              '}' \
+              > src-tauri/tauri.ci.no-updater.conf.json
             echo "extra_args=--config src-tauri/tauri.ci.no-updater.conf.json" >> "$GITHUB_OUTPUT"
             echo "No TAURI_SIGNING_PRIVATE_KEY secret found; disabling updater artifacts for this build."
             exit 0
